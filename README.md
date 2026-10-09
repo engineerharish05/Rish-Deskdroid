@@ -1,50 +1,30 @@
 # Rish Deskdroid
 
-A simple Android launcher built with Kotlin and Jetpack Compose.
+A native Android launcher built with Kotlin and Jetpack Compose, styled around the Rish Deskdroid landscape mockup.
 
-## Essential features
+## Features
+- Can be selected as the Android Home launcher or opened like a regular app.
+- Responsive home surface with live clock/date and a blue, purple, and pink gradient.
+- App library discovers launchable apps installed on the device and opens them.
+- Search filters the app library.
+- Glass-style dock; long-press an app to pin/unpin it.
+- Dock selections persist using Android SharedPreferences and can be edited from the Dock action.
+- Quick settings panel opens the real Android Wi-Fi, Bluetooth, Display, and System settings screens.
+- Back button returns from the app library to the home surface.
 
-- Selectable Android Home launcher
-- Responsive home screen for portrait and landscape layouts
-- Installed-app icons and quick-launch grid
-- Searchable app drawer
-- Live clock and date
-- Shortcut to Android Settings
-- USB keyboard shortcuts while the launcher has focus:
-  - Ctrl+Space or F1: open/close app drawer
-  - Esc: close app drawer
-- No account, analytics, ads, or network permission
+## Build a debug APK
+GitHub Actions builds the debug APK on every push to `main` and can also be started manually.
 
-## Compatibility
+1. Open the repository's **Actions** tab.
+2. Select **Build Rish Deskdroid Debug APK**.
+3. Tap **Run workflow** if you want to start a build manually.
+4. Open the completed run and download the `rish-deskdroid-debug-apk` artifact.
+5. Extract the ZIP to get `app-debug.apk`, then install it on your Android device.
 
-- Minimum Android version: Android 12 (API 31)
-- Uses Android's normal app launching and system Settings intents.
-- This is a simple launcher, not a full desktop operating system. It cannot force other apps to rotate or run in floating windows.
-- QUERY_ALL_PACKAGES is used to display installed launchable apps.
-- Intended for personal sideloading and experimentation.
+The build uses JDK 17, Android Gradle Plugin 8.7.3, Gradle 8.11.1, and Android SDK 35. No Gradle wrapper is required for the CI build.
 
-## Build the APK using your phone
+## Install and choose as Home app
+Install the APK, press Home, and select **Rish Deskdroid**. To switch back, open Android Settings → Apps → Default apps → Home app.
 
-1. Open the Actions tab in this repository.
-2. Select "Build Rish Desktop APK" and run the workflow, or wait for the build triggered by a push to main.
-3. Open the completed workflow run and download the rish-desktop-debug-apk artifact.
-4. Extract the artifact ZIP and install app-debug.apk.
-5. If Android asks, allow the browser or file manager to install unknown apps.
-
-## Set as your Home app
-
-1. Install and open Rish Deskdroid.
-2. Press Home and choose Rish Deskdroid when Android asks which Home app to use.
-3. To switch back, open Android Settings > Apps > Default apps > Home app and select the previous launcher.
-
-## Build locally
-
-Requires JDK 17, Android SDK 35, and Gradle 8.11.1.
-
-Run: gradle assembleDebug
-
-The APK is generated at app/build/outputs/apk/debug/app-debug.apk.
-
-## License
-
-MIT.
+## Platform limitations
+Android restricts third-party apps from toggling protected Wi-Fi/Bluetooth/system settings directly, so the quick panel opens the corresponding Settings screens. The launcher uses `QUERY_ALL_PACKAGES` to list apps installed on the device. This source has not been device-tested yet; use the Actions build result to verify compilation.

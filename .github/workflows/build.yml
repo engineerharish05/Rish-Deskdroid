@@ -1,8 +1,10 @@
-name: Build Rish Desktop APK
+name: Build Rish Deskdroid Debug APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +12,9 @@ permissions:
 
 jobs:
   build:
+    name: Assemble debug APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -27,12 +31,12 @@ jobs:
           gradle-version: "8.11.1"
 
       - name: Build debug APK
-        run: gradle assembleDebug
+        run: gradle --no-daemon --stacktrace assembleDebug
 
-      - name: Upload APK artifact
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: rish-desktop-debug-apk
+          name: rish-deskdroid-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
