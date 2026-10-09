@@ -2,12 +2,11 @@ package com.rish.desktop
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,12 +16,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -31,34 +29,34 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val BgTop = Color(0xFF10182B)
-private val BgBottom = Color(0xFF070B14)
-private val Panel = Color(0xCC182238)
-private val Accent = Color(0xFF8DE0FF)
-private val TextMain = Color(0xFFF2F6FF)
-private val TextMuted = Color(0xFFAAB8D0)
+private val BackgroundTop = Color(0xFF172238)
+private val BackgroundBottom = Color(0xFF080D17)
+private val Panel = Color(0xFF1B2940)
+private val PanelRaised = Color(0xFF24344D)
+private val Accent = Color(0xFF91DFFF)
+private val MainText = Color(0xFFF2F6FC)
+private val MutedText = Color(0xFFACB9CD)
 
 private data class LaunchableApp(
     val label: String,
@@ -69,54 +67,57 @@ private data class LaunchableApp(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(10, 15, 28)
-        window.navigationBarColor = android.graphics.Color.rgb(10, 15, 28)
-        setContent { RishDesktopApp { openSettings() } }
-    }
-
-    private fun openSettings() {
-        runCatching { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
+        window.statusBarColor = android.graphics.Color.rgb(8, 13, 23)
+        window.navigationBarColor = android.graphics.Color.rgb(8, 13, 23)
+        setContent { RishLauncher() }
     }
 }
 
 @Composable
-private fun RishDesktopApp(onOpenSettings: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val pm = context.packageManager
+private fun RishLauncher() {
+    val context = LocalContext.current
+    var apps by remember { mutableStateOf(emptyList<LaunchableApp>()) }
     var showDrawer by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var apps by remember { mutableStateOf(emptyList<LaunchableApp>()) }
+    var now by remember { mutableStateOf(Date()) }
 
-    fun loadApps() {
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        apps = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-            .mapNotNull { info ->
-                val activity = info.activityInfo ?: return@mapNotNull null
-                if (activity.packageName == context.packageName) return@mapNotNull null
-                LaunchableApp(info.loadLabel(pm).toString(), activity.packageName, info.loadIcon(pm))
-            }
-            .distinctBy { it.packageName }
-            .sortedBy { it.label.lowercase(Locale.getDefault()) }
+    LaunchedEffect(Unit) {
+        apps = loadLaunchableApps(context)
+        while (true) {
+            now = Date()
+            delay(30_000)
+        }
     }
 
-    LaunchedEffect(Unit) { loadApps() }
-    BackHandler(showDrawer) { showDrawer = false; query = "" }
-    val filtered = remember(apps, query) {
-        apps.filter { it.label.contains(query, ignoreCase = true) }
+    BackHandler(showDrawer) {
+        showDrawer = false
+        query = ""
     }
 
-    MaterialTheme(colorScheme = darkColorScheme(
-        background = BgBottom, surface = Panel, primary = Accent,
-        onBackground = TextMain, onSurface = TextMain
-    )) {
+    val filteredApps = remember(apps, query) {
+        apps.filter { it.label.contains(query.trim(), ignoreCase = true) }
+    }
+
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            background = BackgroundBottom,
+            surface = Panel,
+            primary = Accent,
+            onBackground = MainText,
+            onSurface = MainText
+        )
+    ) {
         Box(
-            Modifier.fillMaxSize()
-                .background(Brush.verticalGradient(listOf(BgTop, BgBottom)))
+            Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(BackgroundTop, BackgroundBottom)))
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     when {
                         event.key == Key.Escape && showDrawer -> {
-                            showDrawer = false; query = ""; true
+                            showDrawer = false
+                            query = ""
+                            true
                         }
                         event.key == Key.F1 -> {
                             showDrawer = !showDrawer
@@ -132,132 +133,224 @@ private fun RishDesktopApp(onOpenSettings: () -> Unit) {
                     }
                 }
         ) {
-            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 14.dp)) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp, vertical = 16.dp)
+            ) {
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Accent), contentAlignment = Alignment.Center) {
-                            Text("R", color = Color(0xFF07111D), fontWeight = FontWeight.Black, fontSize = 22.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(Accent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("R", color = BackgroundBottom, fontWeight = FontWeight.Black, fontSize = 24.sp)
                         }
                         Column {
-                            Text("RISH DESKTOP", color = TextMain, fontSize = 15.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                            Text("A focused space for your work", color = TextMuted, fontSize = 11.sp)
+                            Text(
+                                "RISH DESKDROID",
+                                color = MainText,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                letterSpacing = 1.5.sp
+                            )
+                            Text("Your apps, one place", color = MutedText, fontSize = 11.sp)
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(SimpleDateFormat("EEE, dd MMM  •  HH:mm", Locale.getDefault()).format(Date()), color = TextMuted, fontSize = 11.sp)
-                        Icon(Icons.Default.Wifi, contentDescription = "Network", tint = TextMuted, modifier = Modifier.size(17.dp))
-                        Icon(Icons.Default.BatteryFull, contentDescription = "Battery", tint = Accent, modifier = Modifier.size(18.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            SimpleDateFormat("HH:mm", Locale.getDefault()).format(now),
+                            color = MainText,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp
+                        )
+                        Text(
+                            SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(now),
+                            color = MutedText,
+                            fontSize = 11.sp
+                        )
                     }
                 }
 
-                Spacer(Modifier.height(18.dp))
-                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Column(Modifier.weight(1.15f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("WORKSPACE", color = TextMuted, fontSize = 10.sp, letterSpacing = 2.sp)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            DesktopTile("All apps", "Search and launch apps", Icons.Default.Apps, Modifier.weight(1f)) { showDrawer = true }
-                            DesktopTile("Settings", "Configure your phone", Icons.Default.Settings, Modifier.weight(1f), onOpenSettings)
-                        }
-                        Column(
-                            Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(18.dp)).background(Panel).padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text("KEYBOARD SHORTCUTS", color = TextMain, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                            ShortcutLine("Ctrl + Space", "Open / close app drawer")
-                            ShortcutLine("F1", "Open / close app drawer")
-                            ShortcutLine("Esc", "Close app drawer")
-                            Spacer(Modifier.height(2.dp))
-                            Text("Shortcuts work while this launcher has focus.", color = TextMuted, fontSize = 10.sp)
-                        }
-                    }
-                    Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("QUICK LAUNCH", color = TextMuted, fontSize = 10.sp, letterSpacing = 2.sp)
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(18.dp)).background(Panel).padding(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            items(apps.take(6), key = { it.packageName }) { app ->
-                                AppIcon(app) { launchApp(context, app.packageName) }
+                Spacer(Modifier.height(22.dp))
+
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(PanelRaised)
+                        .padding(horizontal = 13.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Search, contentDescription = "Search apps", tint = Accent)
+                    Spacer(Modifier.width(10.dp))
+                    BasicTextField(
+                        value = query,
+                        onValueChange = {
+                            query = it
+                            if (it.isNotBlank()) showDrawer = true
+                        },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(color = MainText, fontSize = 14.sp),
+                        cursorBrush = Brush.horizontalGradient(listOf(Accent, Accent)),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        modifier = Modifier.weight(1f),
+                        decorationBox = { inner ->
+                            Box {
+                                if (query.isEmpty()) Text("Search apps…", color = MutedText, fontSize = 14.sp)
+                                inner()
                             }
+                        }
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("QUICK LAUNCH", color = MutedText, fontSize = 11.sp, letterSpacing = 1.7.sp)
+                    Text(
+                        "All apps  →",
+                        color = Accent,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { showDrawer = true }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                if (apps.isEmpty()) {
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("No launchable apps found.", color = MutedText, fontSize = 14.sp)
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 82.dp),
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(apps.take(12), key = { it.packageName }) { app ->
+                            AppTile(app) { launchApp(context, app.packageName) }
                         }
                     }
                 }
 
                 Spacer(Modifier.height(10.dp))
+
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color(0xF21B2941)).padding(horizontal = 10.dp, vertical = 5.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(Panel)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("R", color = Accent, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                        Text("Desktop", color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-                        DockButton("Apps") { showDrawer = true }
-                        DockButton("Settings") { onOpenSettings() }
-                    }
-                    Text("Ctrl + Space  ·  F1  ·  Esc", color = TextMuted, fontSize = 9.sp)
+                    DockAction("Apps", Icons.Default.Apps) { showDrawer = true }
+                    DockAction("Settings", Icons.Default.Settings) { openSystemSettings(context) }
+                    Spacer(Modifier.weight(1f))
+                    Text("Ctrl + Space · F1", color = MutedText, fontSize = 10.sp)
                 }
             }
 
             if (showDrawer) {
                 AppDrawer(
-                    apps = filtered, query = query, onQuery = { query = it },
-                    onDismiss = { showDrawer = false; query = "" },
-                    onLaunch = { pkg -> showDrawer = false; query = ""; launchApp(context, pkg) }
+                    apps = filteredApps,
+                    query = query,
+                    onQueryChange = { query = it },
+                    onDismiss = {
+                        showDrawer = false
+                        query = ""
+                    },
+                    onLaunch = { packageName ->
+                        showDrawer = false
+                        query = ""
+                        launchApp(context, packageName)
+                    }
                 )
             }
         }
     }
 }
 
+private fun loadLaunchableApps(context: Context): List<LaunchableApp> {
+    val packageManager = context.packageManager
+    val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+
+    return packageManager.queryIntentActivities(launcherIntent, 0)
+        .mapNotNull { info ->
+            val activity = info.activityInfo ?: return@mapNotNull null
+            if (activity.packageName == context.packageName) return@mapNotNull null
+            LaunchableApp(
+                label = info.loadLabel(packageManager).toString(),
+                packageName = activity.packageName,
+                icon = info.loadIcon(packageManager)
+            )
+        }
+        .distinctBy { it.packageName }
+        .sortedBy { it.label.lowercase(Locale.getDefault()) }
+}
+
 @Composable
-private fun DesktopTile(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
+private fun AppTile(app: LaunchableApp, onClick: () -> Unit) {
+    val iconBitmap = remember(app.packageName) {
+        app.icon.toBitmap(width = 96, height = 96).asImageBitmap()
+    }
+
     Column(
-        modifier.clip(RoundedCornerShape(16.dp)).background(Panel).clickable { onClick() }.padding(14.dp),
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        Icon(icon, contentDescription = null, tint = Accent, modifier = Modifier.size(23.dp))
-        Text(title, color = TextMain, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-        Text(subtitle, color = TextMuted, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Image(bitmap = iconBitmap, contentDescription = app.label, modifier = Modifier.size(42.dp))
+        Text(
+            app.label,
+            color = MainText,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
 @Composable
-private fun ShortcutLine(keys: String, description: String) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(keys, color = Accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(105.dp))
-        Text(description, color = TextMuted, fontSize = 11.sp)
-    }
-}
-
-@Composable
-private fun DockButton(label: String, onClick: () -> Unit) {
-    Text(label, color = TextMain, fontSize = 10.sp,
-        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(horizontal = 10.dp, vertical = 7.dp))
-}
-
-@Composable
-private fun AppIcon(app: LaunchableApp, onClick: () -> Unit) {
-    val bitmap = remember(app.icon) { app.icon.toBitmap(width = 96, height = 96).asImageBitmap() }
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() }.padding(vertical = 8.dp, horizontal = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+private fun DockAction(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 9.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        Image(bitmap, contentDescription = app.label, modifier = Modifier.size(32.dp))
-        Text(app.label, color = TextMain, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Icon(icon, contentDescription = null, tint = Accent, modifier = Modifier.size(17.dp))
+        Text(label, color = MainText, fontSize = 11.sp)
     }
 }
 
@@ -265,52 +358,89 @@ private fun AppIcon(app: LaunchableApp, onClick: () -> Unit) {
 private fun AppDrawer(
     apps: List<LaunchableApp>,
     query: String,
-    onQuery: (String) -> Unit,
+    onQueryChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onLaunch: (String) -> Unit
 ) {
-    val focus = remember { FocusRequester() }
-    Box(Modifier.fillMaxSize().background(Color(0xEE080D18)).padding(18.dp)) {
-        Column(Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).background(Color(0xFF121C2D)).padding(16.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("APPLICATIONS", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp, letterSpacing = 2.sp)
-                    Text("${apps.size} apps · type to search", color = TextMuted, fontSize = 10.sp)
-                }
-                Text("ESC  Close", color = Accent, fontSize = 11.sp, modifier = Modifier.clickable { onDismiss() }.padding(8.dp))
-            }
-            Spacer(Modifier.height(10.dp))
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xF2080D17))
+            .padding(12.dp)
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(20.dp))
+                .background(BackgroundTop)
+                .padding(16.dp)
+        ) {
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)).background(Color(0xFF202D43)).padding(horizontal = 12.dp, vertical = 9.dp),
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("ALL APPS", color = MainText, fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                    Text(apps.size.toString() + " matching apps", color = MutedText, fontSize = 11.sp)
+                }
+                Text(
+                    "Close  ✕",
+                    color = Accent,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onDismiss)
+                        .padding(8.dp)
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PanelRaised)
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(Icons.Default.Search, contentDescription = null, tint = Accent)
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(9.dp))
                 BasicTextField(
-                    value = query, onValueChange = onQuery, singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(color = TextMain, fontSize = 14.sp),
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = MainText, fontSize = 14.sp),
                     cursorBrush = Brush.horizontalGradient(listOf(Accent, Accent)),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    modifier = Modifier.weight(1f),
                     decorationBox = { inner ->
                         Box {
-                            if (query.isEmpty()) Text("Search installed apps…", color = TextMuted, fontSize = 13.sp)
+                            if (query.isEmpty()) Text("Find an app…", color = MutedText, fontSize = 14.sp)
                             inner()
                         }
                     }
                 )
             }
-            Spacer(Modifier.height(10.dp))
+
+            Spacer(Modifier.height(8.dp))
+
             if (apps.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No matching apps", color = TextMuted) }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No matching apps. Try another search.", color = MutedText, fontSize = 13.sp)
+                }
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 82.dp),
                     modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    contentPadding = PaddingValues(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    items(apps, key = { it.packageName }) { app -> AppIcon(app) { onLaunch(app.packageName) } }
+                    items(apps, key = { it.packageName }) { app ->
+                        AppTile(app) { onLaunch(app.packageName) }
+                    }
                 }
             }
         }
@@ -319,10 +449,16 @@ private fun AppDrawer(
 
 private fun launchApp(context: Context, packageName: String) {
     runCatching {
-        val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-        if (intent != null) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) {
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(launchIntent)
         }
+    }
+}
+
+private fun openSystemSettings(context: Context) {
+    runCatching {
+        context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
     }
 }
