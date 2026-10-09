@@ -4,14 +4,12 @@
 
     <application
         android:allowBackup="false"
-        android:label="Rish Desktop"
+        android:label="Rish Deskdroid"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:supportsRtl="true">
         <activity
             android:name=".MainActivity"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:exported="true"
-            android:screenOrientation="landscape"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
