@@ -64,3 +64,13 @@ app/src/main/java/com/rishdeskdroid/app/
 ```
 
 Permissions: network state, Bluetooth state on Android 11 and older, and request-delete-packages for the Uninstall menu item.
+
+## License
+
+Copyright (c) 2026 Harish P.
+
+The original project code in Rish Deskdroid is licensed under the **GNU General Public License v3.0 only (GPL-3.0-only)**. See the [LICENSE](LICENSE) file for the complete terms.
+
+You may use, study, modify, and redistribute covered code in accordance with GPL-3.0. If you distribute covered copies or modified versions, you must comply with the license, including its applicable source-code and notice requirements. This license does not grant permission to use the Rish Deskdroid name, logo, or other branding as an endorsement.
+
+Third-party libraries and other components remain subject to their respective licenses. This project was developed with AI assistance; licensing this project does not override any rights or obligations that may apply to third-party material.
