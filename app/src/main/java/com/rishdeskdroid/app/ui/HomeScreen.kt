@@ -50,7 +50,6 @@ import com.rishdeskdroid.app.data.dockApps
 import com.rishdeskdroid.app.data.launchApp
 import com.rishdeskdroid.app.data.openLauncherChooser
 import com.rishdeskdroid.app.data.openMobileSettings
-import com.rishdeskdroid.app.data.openOtgStorage
 import com.rishdeskdroid.app.data.removeFromDock
 
 /**
@@ -104,7 +103,6 @@ fun HomeScreen(
         Dock(
             prefs = prefs,
             apps = apps,
-            otgVisible = prefs.otgEnabled && otgConnected,
             onGlass = { showGlass = true },
             onAdd = { showAddPicker = true },
             onOpenDrawer = onOpenDrawer,
@@ -190,7 +188,6 @@ fun GlassSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier
 private fun Dock(
     prefs: LauncherPrefs,
     apps: List<AppInfo>,
-    otgVisible: Boolean,
     onGlass: () -> Unit,
     onAdd: () -> Unit,
     onOpenDrawer: () -> Unit,
@@ -248,13 +245,6 @@ private fun Dock(
             decoration = Modifier.dashedBorder(Color.White.copy(alpha = 0.75f), tile * 0.24f),
         ) {
             SvgIcon(Ico.plus, 24.dp, strokeWidth = 2.2f)
-        }
-
-        // OTG shortcut: shows while a USB device is connected
-        if (otgVisible) {
-            IconTile(tile, Tiles.green, "OTG storage", onClick = { openOtgStorage(context) }) {
-                SvgIcon(Ico.usb, 26.dp)
-            }
         }
 
         // App drawer
