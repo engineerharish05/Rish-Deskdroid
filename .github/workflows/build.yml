@@ -1,42 +1,91 @@
-name: Build Rish Deskdroid APK
+name: Build Rish Deskdroid
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths-ignore:
       - "README.md"
+      - "CHANGELOG.md"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  debug:
+    name: Build debug APK
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
-
       - name: Build debug APK
         run: ./gradlew --no-daemon assembleDebug
-
-      - name: Upload APK artifact
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Rish-Deskdroid-debug-apk
+          name: Rish-Deskdroid-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+  release-preview:
+    name: Build installable release-preview APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: Build release variant
+        run: ./gradlew --no-daemon assembleRelease
+      - name: Sign preview APK with temporary CI key
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE="$RUNNER_TEMP/rish-preview.jks"
+          STORE_PASS="$(openssl rand -hex 16)"
+          keytool -genkeypair -v \
+            -keystore "$KEYSTORE" \
+            -storepass "$STORE_PASS" \
+            -keypass "$STORE_PASS" \
+            -alias rish-preview \
+            -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname "CN=Rish Deskdroid Preview, OU=CI, O=Rish Deskdroid, L=Chennai, ST=Tamil Nadu, C=IN"
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -f "$UNSIGNED"
+          test -n "$APKSIGNER"
+          mkdir -p dist
+          "$APKSIGNER" sign \
+            --ks "$KEYSTORE" \
+            --ks-key-alias rish-preview \
+            --ks-pass "pass:$STORE_PASS" \
+            --key-pass "pass:$STORE_PASS" \
+            --out "dist/Rish-Deskdroid-1.0.0-preview.apk" \
+            "$UNSIGNED"
+          "$APKSIGNER" verify --verbose "dist/Rish-Deskdroid-1.0.0-preview.apk"
+      - name: Upload release-preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rish-Deskdroid-release-preview
+          path: dist/Rish-Deskdroid-1.0.0-preview.apk
+          if-no-files-found: error
+          retention-days: 30
