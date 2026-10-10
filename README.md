@@ -25,7 +25,7 @@ Rish Deskdroid is an Android home-screen replacement built around a horizontal, 
 3. Under **Artifacts**, download **Rish-Deskdroid-release-preview**.
 4. Extract the downloaded ZIP to get the APK.
 
-The debug APK is also available as the **Rish-Deskdroid-debug** artifact.
+The debug APK is also available as the **Rish-Deskdroid-debug** artifact. The CI debug job runs unit tests before packaging the APK.
 
 ### Important signing note
 
@@ -35,9 +35,11 @@ The release-preview APK is signed with a temporary CI key so it can be installed
 
 - **Landscape-only launcher experience** for the home screen and supported app launches.
 - **Glass-inspired interface** with translucent surfaces and bright edges.
-- **App drawer** with a 5 × 3 grid, horizontal paging, and app long-press actions.
+- **App drawer** with a 5 × 3 grid, horizontal paging, live case-insensitive search across app names and package IDs, persistent A–Z / Z–A / favorites-first sorting, favorites markers, and reversible app hiding.
 - **Customizable dock** with app shortcuts and an app-drawer entry.
 - **Launcher settings** for glass opacity, wallpaper, widgets, and keyboard shortcuts.
+- **Persistent app organization** with favorites and hidden-app preferences stored locally.
+- **Automated unit tests** for drawer search, hidden-app filtering, favorites ordering, and alphabetical sorting.
 - **USB OTG shortcut** when a USB device is connected.
 - **Keyboard shortcuts** that can be enabled in settings.
 - **Android widgets** available through the system widget picker.
@@ -89,7 +91,7 @@ Every push to `main` that is not README-only triggers GitHub Actions. You can al
 | Area | Behavior |
 | --- | --- |
 | Home | Swipe up or tap the grid tile to open the app drawer. |
-| App drawer | Browse apps in a 5 × 3 grid; swipe sideways for more pages. Long-press an app for available actions. |
+| App drawer | Search by app name or package ID, choose A–Z / Z–A / favorites-first sorting, swipe sideways for more pages, and long-press an app to favorite, hide, add to Home/dock, view app info, or uninstall. Use **Show hidden** to restore hidden apps. |
 | Dock | Launch pinned apps, open settings, access OTG when available, or open the drawer. Long-press a dock app to remove it. |
 | Glass settings handle | Opens a quick opacity slider. |
 | Exit tile | Opens Android's Home app chooser. |
