@@ -45,6 +45,7 @@ import com.rishdeskdroid.app.data.LauncherPrefs
 import com.rishdeskdroid.app.data.addToDock
 import com.rishdeskdroid.app.data.addToHome
 import com.rishdeskdroid.app.data.launchApp
+import com.rishdeskdroid.app.data.filterAndSortApps
 import com.rishdeskdroid.app.data.openAppInfo
 import com.rishdeskdroid.app.data.uninstallApp
 
@@ -68,23 +69,14 @@ fun DrawerScreen(
     var showSortMenu by remember { mutableStateOf(false) }
 
     val visibleApps = remember(apps, query, showHidden, prefs.hiddenPackages, prefs.favoritePackages, prefs.appSort) {
-        val normalized = query.trim()
-        val base = apps.filter { showHidden || it.packageName !in prefs.hiddenPackages }
-            .filter {
-                normalized.isEmpty() ||
-                    it.label.contains(normalized, ignoreCase = true) ||
-                    it.packageName.contains(normalized, ignoreCase = true)
-            }
-        when (prefs.appSort) {
-            LauncherPrefs.SORT_NAME_DESC -> base.sortedWith(
-                compareByDescending<AppInfo> { it.label.lowercase() }.thenBy { it.packageName },
-            )
-            LauncherPrefs.SORT_FAVORITES -> base.sortedWith(
-                compareByDescending<AppInfo> { it.packageName in prefs.favoritePackages }
-                    .thenBy { it.label.lowercase() },
-            )
-            else -> base.sortedBy { it.label.lowercase() }
-        }
+        filterAndSortApps(
+            apps = apps,
+            query = query,
+            hiddenPackages = prefs.hiddenPackages,
+            showHidden = showHidden,
+            favoritePackages = prefs.favoritePackages,
+            sort = prefs.appSort,
+        )
     }
     val pages = remember(visibleApps) {
         val chunks = visibleApps.chunked(PER_PAGE)
@@ -152,8 +144,7 @@ fun DrawerScreen(
         if (visibleApps.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
-                    if (showHidden && prefs.hiddenPackages.isNotEmpty()) "No apps match this search"
-                    else if (query.isNotBlank()) "No apps found for “$query”"
+                    if (query.isNotBlank()) "No apps found for “$query”"
                     else if (showHidden) "No hidden apps"
                     else "No apps available",
                     color = Color.White.copy(alpha = 0.78f),
