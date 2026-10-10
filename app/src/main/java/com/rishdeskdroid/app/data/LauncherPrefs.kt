@@ -169,18 +169,16 @@ class LauncherPrefs(context: Context) {
         const val SORT_NAME_DESC = "name_desc"
         const val SORT_FAVORITES = "favorites"
         val SORT_OPTIONS = setOf(SORT_NAME_ASC, SORT_NAME_DESC, SORT_FAVORITES)
-    }
 
-    private companion object Keys {
-        const val K_WIDGETS = "widgets_enabled"
-        const val K_OTG = "otg_enabled"
-        const val K_KEYS = "keyboard_shortcuts"
-        const val K_GLASS = "glass_opacity"
-        const val K_WIDGET_IDS = "widget_ids"
-        const val K_DOCK = "dock_packages"
-        const val K_HOME = "home_shortcuts"
-        const val K_FAVORITES = "favorite_packages"
-        const val K_HIDDEN = "hidden_packages"
-        const val K_APP_SORT = "app_sort"
+        private const val K_WIDGETS = "widgets_enabled"
+        private const val K_OTG = "otg_enabled"
+        private const val K_KEYS = "keyboard_shortcuts"
+        private const val K_GLASS = "glass_opacity"
+        private const val K_WIDGET_IDS = "widget_ids"
+        private const val K_DOCK = "dock_packages"
+        private const val K_HOME = "home_shortcuts"
+        private const val K_FAVORITES = "favorite_packages"
+        private const val K_HIDDEN = "hidden_packages"
+        private const val K_APP_SORT = "app_sort"
     }
 }
