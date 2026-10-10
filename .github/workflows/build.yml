@@ -48,8 +48,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Verify Android SDK tools
+        run: test -d "$ANDROID_HOME/build-tools" && test -d "$ANDROID_HOME/platforms"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Make Gradle wrapper executable
