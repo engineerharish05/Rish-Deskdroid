@@ -64,6 +64,7 @@ fun HomeScreen(
     otgConnected: Boolean,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    otgConnected: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -107,6 +108,7 @@ fun HomeScreen(
             onAdd = { showAddPicker = true },
             onOpenDrawer = onOpenDrawer,
             onOpenSettings = onOpenSettings,
+            otgConnected = otgConnected,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 8.dp, vertical = 12.dp),
@@ -233,6 +235,13 @@ private fun Dock(
         dock.forEach { app ->
             key(app.key) {
                 DockApp(app, tile, onRemove = { removeFromDock(prefs, apps, app) })
+            }
+        }
+
+        // OTG shortcut: opens launcher settings so the OTG controls are visible
+        if (prefs.otgEnabled && otgConnected) {
+            IconTile(tile, Tiles.green, "OTG settings", onClick = onOpenSettings) {
+                SvgIcon(Ico.usb, 26.dp)
             }
         }
 
