@@ -4,16 +4,20 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- R: a clear stem, rounded bowl and diagonal leg -->
     <path
-        android:fillColor="#F2FFFFFF"
-        android:pathData="M33,27h12a6,6 0 0 1 6,6v12a6,6 0 0 1 -6,6h-12a6,6 0 0 1 -6,-6v-12a6,6 0 0 1 6,-6z" />
+        android:fillColor="#00000000"
+        android:strokeColor="#292A2D"
+        android:strokeWidth="5.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M27,75 L27,34 L39,34 C48,34 49,47 39,48 L27,48 M37,48 L49,74" />
+    <!-- D: unmistakable straight stem and continuous rounded bowl -->
     <path
-        android:fillColor="#BFFFFFFF"
-        android:pathData="M63,27h12a6,6 0 0 1 6,6v12a6,6 0 0 1 -6,6h-12a6,6 0 0 1 -6,-6v-12a6,6 0 0 1 6,-6z" />
-    <path
-        android:fillColor="#BFFFFFFF"
-        android:pathData="M33,57h12a6,6 0 0 1 6,6v12a6,6 0 0 1 -6,6h-12a6,6 0 0 1 -6,-6v-12a6,6 0 0 1 6,-6z" />
-    <path
-        android:fillColor="#99FFFFFF"
-        android:pathData="M63,57h12a6,6 0 0 1 6,6v12a6,6 0 0 1 -6,6h-12a6,6 0 0 1 -6,-6v-12a6,6 0 0 1 6,-6z" />
+        android:fillColor="#00000000"
+        android:strokeColor="#292A2D"
+        android:strokeWidth="5.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M56,34 L56,74 L64,74 C82,74 82,34 64,34 Z" />
 </vector>
