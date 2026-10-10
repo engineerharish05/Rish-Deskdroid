@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 /** One launchable app. */
 data class AppInfo(
@@ -47,15 +49,31 @@ class AppRepository(private val context: Context) {
         private set
 
     private val handler = Handler(Looper.getMainLooper())
+    private val reloadGeneration = AtomicInteger(0)
+    private val queryExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "RishDeskdroid-AppQuery").apply { isDaemon = true }
+    }
 
+    /**
+     * Serialize package-manager queries and ignore stale results when a newer refresh was requested.
+     * A temporary query failure must not erase the last usable application list.
+     */
     fun reload() {
-        Thread {
-            val list = query()
+        val generation = reloadGeneration.incrementAndGet()
+        queryExecutor.execute {
+            val result = runCatching { query() }
             handler.post {
-                IconLoader.clear()
-                apps = list
+                if (generation == reloadGeneration.get() && result.isSuccess) {
+                    IconLoader.clear()
+                    apps = result.getOrThrow()
+                }
             }
-        }.start()
+        }
+    }
+
+    fun close() {
+        reloadGeneration.incrementAndGet()
+        queryExecutor.shutdownNow()
     }
 
     private fun query(): List<AppInfo> {
