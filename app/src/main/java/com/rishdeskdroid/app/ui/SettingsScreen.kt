@@ -139,7 +139,7 @@ fun SettingsScreen(
             // OTG Shortcut
             SettingRow(
                 Ico.usb, Tiles.green, "OTG Shortcut",
-                subtitle = "Adds a dock shortcut to your files while a USB device is plugged in",
+                subtitle = "Shows a dock shortcut that opens these settings while a USB device is plugged in",
             ) {
                 GlassSwitch(prefs.otgEnabled, { prefs.updateOtgEnabled(it) }, "OTG Shortcut")
             }
