@@ -44,6 +44,9 @@ jobs:
 
           git ls-files -z | xargs -0 -r git rm -f
           cp -a "$SRC"/. .
+          # The Actions token cannot push changes to workflow files without the workflows permission.
+          # Keep workflow files managed through the GitHub Contents API instead.
+          rm -f .github/workflows/build.yml
           mkdir -p .github/workflows
           cp /tmp/preserve-workflow/import-zip.yml .github/workflows/import-zip.yml
           rm -f glass-launcher.zip
