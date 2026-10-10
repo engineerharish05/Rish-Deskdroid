@@ -64,7 +64,6 @@ fun HomeScreen(
     otgConnected: Boolean,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
-    otgConnected: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -194,6 +193,7 @@ private fun Dock(
     onAdd: () -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    otgConnected: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
