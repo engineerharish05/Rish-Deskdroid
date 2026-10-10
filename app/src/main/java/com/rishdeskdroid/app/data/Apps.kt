@@ -134,6 +134,41 @@ fun pruneHomeShortcuts(prefs: LauncherPrefs, pm: PackageManager) {
     if (kept.size != prefs.homeShortcuts.size) prefs.updateHomeShortcuts(kept)
 }
 
+/**
+ * Pure app-drawer filtering and sorting logic, separated from Compose so it can be tested.
+ * When showHidden is true, only hidden apps are shown to make restoring them unambiguous.
+ */
+fun filterAndSortApps(
+    apps: List<AppInfo>,
+    query: String,
+    hiddenPackages: Set<String>,
+    showHidden: Boolean,
+    favoritePackages: Set<String>,
+    sort: String,
+): List<AppInfo> {
+    val normalized = query.trim()
+    val base = apps.asSequence()
+        .filter { if (showHidden) it.packageName in hiddenPackages else it.packageName !in hiddenPackages }
+        .filter {
+            normalized.isEmpty() ||
+                it.label.contains(normalized, ignoreCase = true) ||
+                it.packageName.contains(normalized, ignoreCase = true)
+        }
+        .toList()
+
+    return when (sort) {
+        LauncherPrefs.SORT_NAME_DESC -> base.sortedWith(
+            compareByDescending<AppInfo> { it.label.lowercase() }.thenBy { it.packageName },
+        )
+        LauncherPrefs.SORT_FAVORITES -> base.sortedWith(
+            compareByDescending<AppInfo> { it.packageName in favoritePackages }
+                .thenBy { it.label.lowercase() }
+                .thenBy { it.packageName },
+        )
+        else -> base.sortedWith(compareBy<AppInfo> { it.label.lowercase() }.thenBy { it.packageName })
+    }
+}
+
 class LoadedIcon(val bitmap: ImageBitmap, val adaptive: Boolean)
 
 /**
