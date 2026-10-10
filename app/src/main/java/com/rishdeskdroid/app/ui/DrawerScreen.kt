@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -51,8 +53,8 @@ private const val ROWS = 3
 private const val PER_PAGE = COLUMNS * ROWS
 
 /**
- * The app drawer: all apps in a 5 x 3 grid per page, with page indicator dots at the bottom.
- * Tap empty space (or press back) to close it.
+ * The app drawer supports live search, persistent sorting, favorites, and reversible hiding.
+ * Long-press an app to manage it; hidden apps remain installed and can be restored with Show hidden.
  */
 @Composable
 fun DrawerScreen(
@@ -61,8 +63,31 @@ fun DrawerScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pages = remember(apps) {
-        val chunks = apps.chunked(PER_PAGE)
+    var query by remember { mutableStateOf("") }
+    var showHidden by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
+
+    val visibleApps = remember(apps, query, showHidden, prefs.hiddenPackages, prefs.favoritePackages, prefs.appSort) {
+        val normalized = query.trim()
+        val base = apps.filter { showHidden || it.packageName !in prefs.hiddenPackages }
+            .filter {
+                normalized.isEmpty() ||
+                    it.label.contains(normalized, ignoreCase = true) ||
+                    it.packageName.contains(normalized, ignoreCase = true)
+            }
+        when (prefs.appSort) {
+            LauncherPrefs.SORT_NAME_DESC -> base.sortedWith(
+                compareByDescending<AppInfo> { it.label.lowercase() }.thenBy { it.packageName },
+            )
+            LauncherPrefs.SORT_FAVORITES -> base.sortedWith(
+                compareByDescending<AppInfo> { it.packageName in prefs.favoritePackages }
+                    .thenBy { it.label.lowercase() },
+            )
+            else -> base.sortedBy { it.label.lowercase() }
+        }
+    }
+    val pages = remember(visibleApps) {
+        val chunks = visibleApps.chunked(PER_PAGE)
         if (chunks.isEmpty()) listOf(emptyList<AppInfo>()) else chunks
     }
     val pagerState = rememberPagerState(pageCount = { pages.size })
@@ -70,46 +95,115 @@ fun DrawerScreen(
     Column(
         modifier
             .fillMaxSize()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClose,
-            ),
+            .padding(horizontal = 22.dp, vertical = 8.dp),
     ) {
-        HorizontalPager(
-            state = pagerState,
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        ) { page ->
-            AppPage(prefs, apps, pages[page])
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White.copy(alpha = 0.14f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                if (query.isEmpty()) {
+                    Text("Search apps", color = Color.White.copy(alpha = 0.62f), fontSize = 14.sp)
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 14.sp),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search applications" },
+                )
+            }
+            Box {
+                DrawerActionButton(
+                    label = when (prefs.appSort) {
+                        LauncherPrefs.SORT_NAME_DESC -> "Z–A"
+                        LauncherPrefs.SORT_FAVORITES -> "★"
+                        else -> "A–Z"
+                    },
+                    onClick = { showSortMenu = true },
+                )
+                DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                    DropdownMenuItem(text = { Text("Name: A–Z") }, onClick = {
+                        prefs.updateAppSort(LauncherPrefs.SORT_NAME_ASC); showSortMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Name: Z–A") }, onClick = {
+                        prefs.updateAppSort(LauncherPrefs.SORT_NAME_DESC); showSortMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Favorites first") }, onClick = {
+                        prefs.updateAppSort(LauncherPrefs.SORT_FAVORITES); showSortMenu = false
+                    })
+                }
+            }
+            DrawerActionButton(
+                label = if (showHidden) "Hide hidden" else "Show hidden",
+                onClick = { showHidden = !showHidden },
+            )
         }
-        PageDots(count = pages.size, current = pagerState.currentPage)
+
+        if (visibleApps.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    if (showHidden && prefs.hiddenPackages.isNotEmpty()) "No apps match this search"
+                    else if (query.isNotBlank()) "No apps found for “$query”"
+                    else if (showHidden) "No hidden apps"
+                    else "No apps available",
+                    color = Color.White.copy(alpha = 0.78f),
+                    fontSize = 15.sp,
+                )
+            }
+        } else {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            ) { page ->
+                AppPage(prefs, apps, pages[page], showHidden)
+            }
+            PageDots(count = pages.size, current = pagerState.currentPage)
+        }
     }
 }
 
 @Composable
-private fun AppPage(prefs: LauncherPrefs, allApps: List<AppInfo>, items: List<AppInfo>) {
+private fun DrawerActionButton(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.14f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, color = Color.White, fontSize = 12.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun AppPage(prefs: LauncherPrefs, allApps: List<AppInfo>, items: List<AppInfo>, showHidden: Boolean) {
     Column(
         Modifier
             .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         for (row in 0 until ROWS) {
             Row(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                Modifier.weight(1f).fillMaxWidth(),
             ) {
                 for (col in 0 until COLUMNS) {
                     val app = items.getOrNull(row * COLUMNS + col)
                     Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                        Modifier.weight(1f).fillMaxHeight(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (app != null) DrawerApp(prefs, allApps, app)
+                        if (app != null) DrawerApp(prefs, allApps, app, showHidden)
                     }
                 }
             }
@@ -119,10 +213,12 @@ private fun AppPage(prefs: LauncherPrefs, allApps: List<AppInfo>, items: List<Ap
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DrawerApp(prefs: LauncherPrefs, allApps: List<AppInfo>, app: AppInfo) {
+private fun DrawerApp(prefs: LauncherPrefs, allApps: List<AppInfo>, app: AppInfo, showHidden: Boolean) {
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     val source = remember { MutableInteractionSource() }
+    val favorite = app.packageName in prefs.favoritePackages
+    val hidden = app.packageName in prefs.hiddenPackages
 
     Box {
         Column(
@@ -139,7 +235,12 @@ private fun DrawerApp(prefs: LauncherPrefs, allApps: List<AppInfo>, app: AppInfo
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            AppIconImage(app, 54.dp)
+            Box(contentAlignment = Alignment.TopEnd) {
+                AppIconImage(app, 54.dp)
+                if (favorite) {
+                    Text("★", color = Color(0xFFFFD76A), fontSize = 13.sp)
+                }
+            }
             Text(
                 text = app.label,
                 color = Color.White,
@@ -152,6 +253,17 @@ private fun DrawerApp(prefs: LauncherPrefs, allApps: List<AppInfo>, app: AppInfo
             )
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text(if (favorite) "Remove from Favorites" else "Add to Favorites") },
+                onClick = { prefs.toggleFavorite(app.packageName); menu = false },
+            )
+            DropdownMenuItem(
+                text = { Text(if (hidden) "Restore to Drawer" else "Hide from Drawer") },
+                onClick = {
+                    if (hidden) prefs.unhidePackage(app.packageName) else prefs.hidePackage(app.packageName)
+                    menu = false
+                },
+            )
             DropdownMenuItem(
                 text = { Text("Add to Home") },
                 onClick = {
@@ -174,20 +286,14 @@ private fun DrawerApp(prefs: LauncherPrefs, allApps: List<AppInfo>, app: AppInfo
                     }
                 },
             )
-            DropdownMenuItem(
-                text = { Text("App info") },
-                onClick = {
-                    menu = false
-                    openAppInfo(context, app)
-                },
-            )
-            DropdownMenuItem(
-                text = { Text("Uninstall") },
-                onClick = {
-                    menu = false
-                    uninstallApp(context, app)
-                },
-            )
+            DropdownMenuItem(text = { Text("App info") }, onClick = {
+                menu = false
+                openAppInfo(context, app)
+            })
+            DropdownMenuItem(text = { Text("Uninstall") }, onClick = {
+                menu = false
+                uninstallApp(context, app)
+            })
         }
     }
 }
