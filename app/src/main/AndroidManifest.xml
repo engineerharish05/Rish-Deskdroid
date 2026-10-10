@@ -20,6 +20,13 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Lets the OTG shortcut check that the system storage screens exist (Android 11+) -->
+        <intent>
+            <action android:name="android.settings.INTERNAL_STORAGE_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.MEMORY_CARD_SETTINGS" />
+        </intent>
     </queries>
 
     <application

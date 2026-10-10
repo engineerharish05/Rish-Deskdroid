@@ -11,12 +11,18 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +32,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -40,12 +47,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rishdeskdroid.app.data.AppInfo
 import com.rishdeskdroid.app.data.LauncherPrefs
 import com.rishdeskdroid.app.data.WidgetController
 import com.rishdeskdroid.app.data.addToDock
+import com.rishdeskdroid.app.data.HOME_COLUMNS
+import com.rishdeskdroid.app.data.HOME_PER_PAGE
+import com.rishdeskdroid.app.data.HOME_ROWS
+import com.rishdeskdroid.app.data.openOtgDestination
+import com.rishdeskdroid.app.data.pruneHomeShortcuts
+import com.rishdeskdroid.app.data.removeFromHome
 import com.rishdeskdroid.app.data.dockApps
 import com.rishdeskdroid.app.data.launchApp
 import com.rishdeskdroid.app.data.openLauncherChooser
@@ -83,20 +100,33 @@ fun HomeScreen(
                 )
             },
     ) {
-        // Widgets (only if enabled and at least one has been added)
-        if (prefs.widgetsEnabled && prefs.widgetIds.isNotEmpty()) {
-            Row(
-                Modifier
-                    .align(Alignment.TopStart)
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                prefs.widgetIds.forEach { id ->
-                    key(id) { WidgetView(widgets, id) }
+        Column(Modifier.fillMaxSize()) {
+            // Widgets (only if enabled and at least one has been added)
+            if (prefs.widgetsEnabled && prefs.widgetIds.isNotEmpty()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    prefs.widgetIds.forEach { id ->
+                        key(id) { WidgetView(widgets, id) }
+                    }
                 }
             }
+
+            // App shortcuts: 5 columns x 4 rows per page, between the widgets and the dock
+            ShortcutGrid(
+                prefs = prefs,
+                apps = apps,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+
+            // Keeps the grid clear of the dock, which floats over the bottom of this screen
+            Spacer(Modifier.height(DockReserve))
         }
 
         // Dock
@@ -238,9 +268,9 @@ private fun Dock(
             }
         }
 
-        // OTG shortcut: opens launcher settings so the OTG controls are visible
+        // OTG shortcut: opens Android's storage / USB drive screen (with fallbacks), not our Settings
         if (prefs.otgEnabled && otgConnected) {
-            IconTile(tile, Tiles.green, "OTG settings", onClick = onOpenSettings) {
+            IconTile(tile, Tiles.green, "USB / OTG storage", onClick = { openOtgDestination(context) }) {
                 SvgIcon(Ico.usb, 26.dp)
             }
         }
@@ -311,6 +341,132 @@ private fun DockApp(
                 onClick = {
                     menu = false
                     onRemove()
+                },
+            )
+        }
+    }
+}
+
+
+/** Space reserved at the bottom of the home screen for the floating dock (tile + padding). */
+private val DockReserve = 88.dp
+
+/**
+ * Home-screen shortcuts: a 5 x 4 grid per page. A new page appears automatically once a page is full.
+ * Shortcuts are stored by package name and slot number, and looked up in the installed-app list.
+ */
+@Composable
+private fun ShortcutGrid(prefs: LauncherPrefs, apps: List<AppInfo>, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+
+    // Drop shortcuts for apps that are really gone. The wait avoids pruning during an app update,
+    // when the package briefly disappears.
+    LaunchedEffect(apps) {
+        if (apps.isNotEmpty()) {
+            delay(3000)
+            pruneHomeShortcuts(prefs, context.packageManager)
+        }
+    }
+
+    val installed = remember(apps) { apps.distinctBy { it.packageName }.associateBy { it.packageName } }
+    val shortcuts = prefs.homeShortcuts
+    val pageCount = (shortcuts.maxOfOrNull { it.slot } ?: 0) / HOME_PER_PAGE + 1
+    val pagerState = rememberPagerState(pageCount = { pageCount })
+
+    Column(modifier) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) { page ->
+            ShortcutPage(prefs, page, installed)
+        }
+        if (pageCount > 1) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+                    .semantics { contentDescription = "Home page ${pagerState.currentPage + 1} of $pageCount" },
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+            ) {
+                for (i in 0 until pageCount) {
+                    Box(
+                        Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = if (i == pagerState.currentPage) 1f else 0.4f)),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShortcutPage(prefs: LauncherPrefs, page: Int, installed: Map<String, AppInfo>) {
+    val bySlot = prefs.homeShortcuts.associateBy { it.slot }
+    BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        val iconSize = (maxHeight / HOME_ROWS - 24.dp).coerceIn(24.dp, 52.dp)
+        Column(Modifier.fillMaxSize()) {
+            for (row in 0 until HOME_ROWS) {
+                Row(Modifier.weight(1f).fillMaxWidth()) {
+                    for (col in 0 until HOME_COLUMNS) {
+                        val slot = page * HOME_PER_PAGE + row * HOME_COLUMNS + col
+                        val app = bySlot[slot]?.let { installed[it.packageName] }
+                        Box(
+                            Modifier.weight(1f).fillMaxHeight(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (app != null) key(app.packageName) { ShortcutCell(prefs, app, iconSize) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ShortcutCell(prefs: LauncherPrefs, app: AppInfo, iconSize: Dp) {
+    val context = LocalContext.current
+    var menu by remember { mutableStateOf(false) }
+    val source = remember { MutableInteractionSource() }
+
+    Box {
+        Column(
+            Modifier
+                .pressScale(source, 1.07f)
+                .combinedClickable(
+                    interactionSource = source,
+                    indication = null,
+                    onClick = { launchApp(context, app) },
+                    onLongClick = { menu = true },
+                )
+                .semantics { contentDescription = app.label }
+                .padding(horizontal = 2.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            AppIconImage(app, iconSize)
+            Text(
+                text = app.label,
+                color = Color.White,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                style = LabelStyle,
+            )
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            // Only removes the shortcut; the app stays installed and in the drawer
+            DropdownMenuItem(
+                text = { Text("Remove from Home") },
+                onClick = {
+                    menu = false
+                    removeFromHome(prefs, app.packageName)
                 },
             )
         }

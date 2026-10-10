@@ -37,9 +37,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rishdeskdroid.app.data.AddToHomeResult
 import com.rishdeskdroid.app.data.AppInfo
 import com.rishdeskdroid.app.data.LauncherPrefs
 import com.rishdeskdroid.app.data.addToDock
+import com.rishdeskdroid.app.data.addToHome
 import com.rishdeskdroid.app.data.launchApp
 import com.rishdeskdroid.app.data.openAppInfo
 import com.rishdeskdroid.app.data.uninstallApp
@@ -150,6 +152,19 @@ private fun DrawerApp(prefs: LauncherPrefs, allApps: List<AppInfo>, app: AppInfo
             )
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text("Add to Home") },
+                onClick = {
+                    menu = false
+                    val message = when (addToHome(prefs, allApps, app)) {
+                        AddToHomeResult.Added -> "${app.label} added to Home"
+                        AddToHomeResult.AlreadyOnHome -> "${app.label} is already on Home"
+                        AddToHomeResult.Full -> "The home screen is full"
+                        AddToHomeResult.Unavailable -> "Can't add ${app.label}"
+                    }
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                },
+            )
             DropdownMenuItem(
                 text = { Text("Add to dock") },
                 onClick = {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.rishdeskdroid.app.data.LauncherPrefs
 import com.rishdeskdroid.app.data.WallpaperStore
 import com.rishdeskdroid.app.data.WidgetController
@@ -71,6 +74,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var showWallpaper by remember { mutableStateOf(false) }
 
     // Wallpaper: the photo picked but not applied yet
     var pending by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -79,7 +83,7 @@ fun SettingsScreen(
         value = withContext(Dispatchers.IO) { WallpaperStore.load(context) }
     }
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
+        if (uri != null && showWallpaper) {
             scope.launch {
                 val bitmap = withContext(Dispatchers.IO) { WallpaperStore.decode(context, uri) }
                 if (bitmap != null) {
@@ -139,7 +143,7 @@ fun SettingsScreen(
             // OTG Shortcut
             SettingRow(
                 Ico.usb, Tiles.green, "OTG Shortcut",
-                subtitle = "Shows a dock shortcut that opens these settings while a USB device is plugged in",
+                subtitle = "Adds a dock shortcut to the Android USB / storage screen while a USB device is plugged in",
             ) {
                 GlassSwitch(prefs.otgEnabled, { prefs.updateOtgEnabled(it) }, "OTG Shortcut")
             }
@@ -171,20 +175,24 @@ fun SettingsScreen(
             }
             RowDivider()
 
-            // Wallpaper change
+            // Wallpaper change: tap the preview (or Change) to open the wallpaper controls
             SettingRow(Ico.image, Tiles.pink, "Wallpaper change") {
-                val preview = pending ?: current
                 val thumbShape = RoundedCornerShape(8.dp)
+                val shown = current
                 Box(
                     Modifier
                         .size(width = 84.dp, height = 48.dp)
                         .clip(thumbShape)
                         .border(1.dp, Color.White.copy(alpha = 0.5f), thumbShape)
-                        .semantics { contentDescription = "Wallpaper preview" },
+                        .clickable(
+                            onClickLabel = "Open wallpaper controls",
+                            role = Role.Button,
+                        ) { showWallpaper = true }
+                        .semantics { contentDescription = "Wallpaper preview. Tap to change wallpaper" },
                 ) {
-                    if (preview != null) {
+                    if (shown != null) {
                         Image(
-                            bitmap = preview,
+                            bitmap = shown,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
@@ -193,27 +201,44 @@ fun SettingsScreen(
                         DefaultWallpaper(Modifier.fillMaxSize())
                     }
                 }
-                TextButton("Select photo") { pickPhoto.launch("image/*") }
-                TextButton("Default", enabled = current != null || pending != null) {
-                    pending = null
-                    pendingRaw = null
-                    WallpaperStore.clear(context)
-                    prefs.bumpWallpaper()
-                }
-                TextButton("Apply", primary = true, enabled = pendingRaw != null) {
-                    val raw = pendingRaw
-                    if (raw != null) {
-                        scope.launch {
-                            withContext(Dispatchers.IO) { WallpaperStore.save(context, raw) }
-                            pending = null
-                            pendingRaw = null
-                            prefs.bumpWallpaper()
-                        }
-                    }
-                }
+                TextButton("Change") { showWallpaper = true }
             }
         }
         Spacer(Modifier.height(10.dp))
+    }
+
+    if (showWallpaper) {
+        WallpaperDialog(
+            preview = pending ?: current,
+            hasCustomWallpaper = current != null,
+            hasPending = pendingRaw != null,
+            onSelectPhoto = { pickPhoto.launch("image/*") },
+            onUseDefault = {
+                pending = null
+                pendingRaw = null
+                WallpaperStore.clear(context)
+                prefs.bumpWallpaper()
+                showWallpaper = false
+            },
+            onApply = {
+                val raw = pendingRaw
+                if (raw != null) {
+                    scope.launch {
+                        withContext(Dispatchers.IO) { WallpaperStore.save(context, raw) }
+                        pending = null
+                        pendingRaw = null
+                        prefs.bumpWallpaper()
+                        showWallpaper = false
+                    }
+                }
+            },
+            onCancel = {
+                // Closing without Apply keeps the current wallpaper untouched
+                pending = null
+                pendingRaw = null
+                showWallpaper = false
+            },
+        )
     }
 
     if (showWidgetPicker) {
@@ -335,12 +360,14 @@ private fun TextButton(
     text: String,
     primary: Boolean = false,
     enabled: Boolean = true,
+    fullWidth: Boolean = false,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(12.dp)
     val fill = if (primary) Color(0xFF3B82F6) else Color.White.copy(alpha = 0.2f)
     Box(
         Modifier
+            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = 44.dp)
             .clip(shape)
             .background(fill.copy(alpha = if (enabled) fill.alpha else fill.alpha * 0.4f))
@@ -355,5 +382,72 @@ private fun TextButton(
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+
+/** Wallpaper controls: pick a photo, preview it, then Apply, or go back to the default / cancel. */
+@Composable
+private fun WallpaperDialog(
+    preview: ImageBitmap?,
+    hasCustomWallpaper: Boolean,
+    hasPending: Boolean,
+    onSelectPhoto: () -> Unit,
+    onUseDefault: () -> Unit,
+    onApply: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onCancel,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        val shape = RoundedCornerShape(24.dp)
+        Row(
+            Modifier
+                .fillMaxWidth(0.8f)
+                .background(Color(0xF2171A3F), shape)
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val previewShape = RoundedCornerShape(14.dp)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .aspectRatio(16f / 9f)
+                    .clip(previewShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.5f), previewShape)
+                    .semantics {
+                        contentDescription =
+                            if (hasPending) "Selected wallpaper preview, not applied yet" else "Current wallpaper preview"
+                    },
+            ) {
+                if (preview != null) {
+                    Image(
+                        bitmap = preview,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    DefaultWallpaper(Modifier.fillMaxSize())
+                }
+            }
+            Column(
+                Modifier.widthIn(min = 150.dp, max = 200.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    "Wallpaper",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                TextButton("Select photo", fullWidth = true, onClick = onSelectPhoto)
+                TextButton("Use default", enabled = hasCustomWallpaper || hasPending, fullWidth = true, onClick = onUseDefault)
+                TextButton("Apply", primary = true, enabled = hasPending, fullWidth = true, onClick = onApply)
+                TextButton("Cancel", fullWidth = true, onClick = onCancel)
+            }
+        }
     }
 }
