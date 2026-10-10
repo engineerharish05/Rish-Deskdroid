@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 /** One launchable app. */
 data class AppInfo(
@@ -47,15 +49,31 @@ class AppRepository(private val context: Context) {
         private set
 
     private val handler = Handler(Looper.getMainLooper())
+    private val reloadGeneration = AtomicInteger(0)
+    private val queryExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "RishDeskdroid-AppQuery").apply { isDaemon = true }
+    }
 
+    /**
+     * Serialize package-manager queries and ignore stale results when a newer refresh was requested.
+     * A temporary query failure must not erase the last usable application list.
+     */
     fun reload() {
-        Thread {
-            val list = query()
+        val generation = reloadGeneration.incrementAndGet()
+        queryExecutor.execute {
+            val result = runCatching { query() }
             handler.post {
-                IconLoader.clear()
-                apps = list
+                if (generation == reloadGeneration.get() && result.isSuccess) {
+                    IconLoader.clear()
+                    apps = result.getOrThrow()
+                }
             }
-        }.start()
+        }
+    }
+
+    fun close() {
+        reloadGeneration.incrementAndGet()
+        queryExecutor.shutdownNow()
     }
 
     private fun query(): List<AppInfo> {
@@ -132,6 +150,41 @@ fun pruneHomeShortcuts(prefs: LauncherPrefs, pm: PackageManager) {
         }
     }
     if (kept.size != prefs.homeShortcuts.size) prefs.updateHomeShortcuts(kept)
+}
+
+/**
+ * Pure app-drawer filtering and sorting logic, separated from Compose so it can be tested.
+ * When showHidden is true, only hidden apps are shown to make restoring them unambiguous.
+ */
+fun filterAndSortApps(
+    apps: List<AppInfo>,
+    query: String,
+    hiddenPackages: Set<String>,
+    showHidden: Boolean,
+    favoritePackages: Set<String>,
+    sort: String,
+): List<AppInfo> {
+    val normalized = query.trim()
+    val base = apps.asSequence()
+        .filter { if (showHidden) it.packageName in hiddenPackages else it.packageName !in hiddenPackages }
+        .filter {
+            normalized.isEmpty() ||
+                it.label.contains(normalized, ignoreCase = true) ||
+                it.packageName.contains(normalized, ignoreCase = true)
+        }
+        .toList()
+
+    return when (sort) {
+        LauncherPrefs.SORT_NAME_DESC -> base.sortedWith(
+            compareByDescending<AppInfo> { it.label.lowercase() }.thenBy { it.packageName },
+        )
+        LauncherPrefs.SORT_FAVORITES -> base.sortedWith(
+            compareByDescending<AppInfo> { it.packageName in favoritePackages }
+                .thenBy { it.label.lowercase() }
+                .thenBy { it.packageName },
+        )
+        else -> base.sortedWith(compareBy<AppInfo> { it.label.lowercase() }.thenBy { it.packageName })
+    }
 }
 
 class LoadedIcon(val bitmap: ImageBitmap, val adaptive: Boolean)

@@ -51,6 +51,18 @@ class LauncherPrefs(context: Context) {
     var homeShortcuts by mutableStateOf(loadHomeShortcuts())
         private set
 
+    /** Packages marked as favorites in the app drawer. */
+    var favoritePackages by mutableStateOf(loadPackageSet(K_FAVORITES))
+        private set
+
+    /** Packages hidden from the normal app drawer (never uninstalled). */
+    var hiddenPackages by mutableStateOf(loadPackageSet(K_HIDDEN))
+        private set
+
+    /** App drawer sorting: name_asc, name_desc, or favorites. */
+    var appSort by mutableStateOf(sp.getString(K_APP_SORT, SORT_NAME_ASC) ?: SORT_NAME_ASC)
+        private set
+
     fun updateWidgetsEnabled(value: Boolean) {
         widgetsEnabled = value
         sp.edit().putBoolean(K_WIDGETS, value).apply()
@@ -77,18 +89,45 @@ class LauncherPrefs(context: Context) {
     }
 
     fun updateWidgetIds(ids: List<Int>) {
-        widgetIds = ids
-        sp.edit().putString(K_WIDGET_IDS, ids.joinToString(",")).apply()
+        widgetIds = ids.distinct()
+        sp.edit().putString(K_WIDGET_IDS, widgetIds.joinToString(",")).apply()
     }
 
     fun updateDockPackages(packages: List<String>) {
-        dockPackages = packages
-        sp.edit().putString(K_DOCK, packages.joinToString("|")).apply()
+        dockPackages = packages.distinct()
+        sp.edit().putString(K_DOCK, dockPackages!!.joinToString("|")).apply()
     }
 
     fun updateHomeShortcuts(list: List<HomeShortcut>) {
-        homeShortcuts = list
-        sp.edit().putString(K_HOME, list.joinToString("|") { "${it.slot}:${it.packageName}" }).apply()
+        val seenSlots = HashSet<Int>()
+        val seenPackages = HashSet<String>()
+        homeShortcuts = list.filter { it.slot >= 0 && it.slot < HOME_PER_PAGE * MAX_HOME_PAGES }
+            .filter { seenSlots.add(it.slot) && seenPackages.add(it.packageName) }
+        sp.edit().putString(K_HOME, homeShortcuts.joinToString("|") { "${it.slot}:${it.packageName}" }).apply()
+    }
+
+    fun toggleFavorite(packageName: String) {
+        val next = favoritePackages.toMutableSet()
+        if (!next.add(packageName)) next.remove(packageName)
+        favoritePackages = next
+        sp.edit().putString(K_FAVORITES, next.joinToString("|")).apply()
+    }
+
+    fun hidePackage(packageName: String) {
+        val next = hiddenPackages + packageName
+        hiddenPackages = next
+        sp.edit().putString(K_HIDDEN, next.joinToString("|")).apply()
+    }
+
+    fun unhidePackage(packageName: String) {
+        val next = hiddenPackages - packageName
+        hiddenPackages = next
+        sp.edit().putString(K_HIDDEN, next.joinToString("|")).apply()
+    }
+
+    fun updateAppSort(value: String) {
+        appSort = value.takeIf { it in SORT_OPTIONS } ?: SORT_NAME_ASC
+        sp.edit().putString(K_APP_SORT, appSort).apply()
     }
 
     private fun loadHomeShortcuts(): List<HomeShortcut> {
@@ -110,19 +149,36 @@ class LauncherPrefs(context: Context) {
             .orEmpty()
             .split(",")
             .mapNotNull { it.trim().toIntOrNull() }
+            .distinct()
 
     private fun loadDock(): List<String>? {
         val raw = sp.getString(K_DOCK, null) ?: return null
-        return raw.split("|").filter { it.isNotBlank() }
+        return raw.split("|").filter { it.isNotBlank() }.distinct()
     }
 
-    private companion object {
-        const val K_WIDGETS = "widgets_enabled"
-        const val K_OTG = "otg_enabled"
-        const val K_KEYS = "keyboard_shortcuts"
-        const val K_GLASS = "glass_opacity"
-        const val K_WIDGET_IDS = "widget_ids"
-        const val K_DOCK = "dock_packages"
-        const val K_HOME = "home_shortcuts"
+    private fun loadPackageSet(key: String): Set<String> =
+        sp.getString(key, "")
+            .orEmpty()
+            .split("|")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
+
+    companion object {
+        const val SORT_NAME_ASC = "name_asc"
+        const val SORT_NAME_DESC = "name_desc"
+        const val SORT_FAVORITES = "favorites"
+        val SORT_OPTIONS = setOf(SORT_NAME_ASC, SORT_NAME_DESC, SORT_FAVORITES)
+
+        private const val K_WIDGETS = "widgets_enabled"
+        private const val K_OTG = "otg_enabled"
+        private const val K_KEYS = "keyboard_shortcuts"
+        private const val K_GLASS = "glass_opacity"
+        private const val K_WIDGET_IDS = "widget_ids"
+        private const val K_DOCK = "dock_packages"
+        private const val K_HOME = "home_shortcuts"
+        private const val K_FAVORITES = "favorite_packages"
+        private const val K_HIDDEN = "hidden_packages"
+        private const val K_APP_SORT = "app_sort"
     }
 }
