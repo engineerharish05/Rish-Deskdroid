@@ -29,7 +29,7 @@ class AppsFilterTest {
     @Test
     fun homeShortcutMoveUsesEmptyCellWithoutChangingOtherShortcuts() {
         assertEquals(
-            listOf(HomeShortcut(1, "b"), HomeShortcut(5, "c"), HomeShortcut(6, "a")),
+            listOf(HomeShortcut(0, "a"), HomeShortcut(1, "b"), HomeShortcut(6, "c")),
             reorderHomeShortcuts(homeShortcuts, "c", 1),
         )
     }
@@ -42,7 +42,7 @@ class AppsFilterTest {
             reorderHomeShortcuts(shortcuts, "a", -HOME_COLUMNS),
         )
         assertEquals(
-            listOf(HomeShortcut(10, "b"), HomeShortcut(15, "a")),
+            listOf(HomeShortcut(5, "b"), HomeShortcut(10, "a")),
             reorderHomeShortcuts(shortcuts, "a", HOME_COLUMNS),
         )
     }
