@@ -113,7 +113,7 @@ fun WidgetPickerDialog(
             )
         }
         LazyColumn(Modifier.fillMaxWidth()) {
-            items(providers, key = { "${it.provider.flattenToString()}#${it.user}" }) { info ->
+            items(providers, key = { "${it.provider.flattenToString()}" }) { info ->
                 val label = remember(info) { info.loadLabel(context.packageManager) }
                 val icon = remember(info) {
                     try {
