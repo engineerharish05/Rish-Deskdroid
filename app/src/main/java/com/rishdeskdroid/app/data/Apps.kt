@@ -1,5 +1,6 @@
 package com.rishdeskdroid.app.data
 
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -96,6 +97,43 @@ fun addToDock(prefs: LauncherPrefs, apps: List<AppInfo>, app: AppInfo): Boolean 
 fun removeFromDock(prefs: LauncherPrefs, apps: List<AppInfo>, app: AppInfo) {
     val current = dockApps(prefs, apps).map { it.packageName }
     prefs.updateDockPackages(current - app.packageName)
+}
+
+const val HOME_COLUMNS = 5
+const val HOME_ROWS = 4
+const val HOME_PER_PAGE = HOME_COLUMNS * HOME_ROWS
+const val MAX_HOME_PAGES = 10
+
+enum class AddToHomeResult { Added, AlreadyOnHome, Unavailable, Full }
+
+/** Puts the app in the first free home-screen cell (a new page opens when a page is full). */
+fun addToHome(prefs: LauncherPrefs, apps: List<AppInfo>, app: AppInfo): AddToHomeResult {
+    if (apps.none { it.packageName == app.packageName }) return AddToHomeResult.Unavailable
+    val current = prefs.homeShortcuts
+    if (current.any { it.packageName == app.packageName }) return AddToHomeResult.AlreadyOnHome
+    val used = current.map { it.slot }.toSet()
+    val slot = (0 until HOME_PER_PAGE * MAX_HOME_PAGES).firstOrNull { it !in used }
+        ?: return AddToHomeResult.Full
+    prefs.updateHomeShortcuts(current + HomeShortcut(slot, app.packageName))
+    return AddToHomeResult.Added
+}
+
+/** Removes only the home shortcut. The app stays installed and stays in the drawer. */
+fun removeFromHome(prefs: LauncherPrefs, packageName: String) {
+    prefs.updateHomeShortcuts(prefs.homeShortcuts.filter { it.packageName != packageName })
+}
+
+/** Forgets shortcuts whose app is no longer installed. */
+fun pruneHomeShortcuts(prefs: LauncherPrefs, pm: PackageManager) {
+    val kept = prefs.homeShortcuts.filter {
+        try {
+            pm.getApplicationInfo(it.packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+    if (kept.size != prefs.homeShortcuts.size) prefs.updateHomeShortcuts(kept)
 }
 
 class LoadedIcon(val bitmap: ImageBitmap, val adaptive: Boolean)
@@ -221,7 +259,33 @@ fun openLauncherChooser(context: Context) {
     }
 }
 
-/** The OTG tile: opens the system file picker, where a connected USB drive appears in the sidebar. */
+/**
+ * The OTG tile. Android has no public "OTG settings" page, so this tries the system storage
+ * screens (where a USB drive is listed and can be opened or ejected) and only then falls back to
+ * the system file picker. Each step is checked before launching and failures are handled.
+ */
+fun openOtgDestination(context: Context) {
+    val pm = context.packageManager
+    val candidates = listOf(
+        Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS),
+        Intent(Settings.ACTION_MEMORY_CARD_SETTINGS),
+    )
+    for (intent in candidates) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (intent.resolveActivity(pm) == null) continue
+        try {
+            context.startActivity(intent)
+            return
+        } catch (e: ActivityNotFoundException) {
+            // try the next destination
+        } catch (e: SecurityException) {
+            // try the next destination
+        }
+    }
+    openOtgStorage(context)
+}
+
+/** The OTG tile fallback: opens the system file picker, where a connected USB drive appears in the sidebar. */
 fun openOtgStorage(context: Context) {
     safeStart(context, Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), "No file manager available")
 }

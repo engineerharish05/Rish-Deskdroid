@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/** One app shortcut on the home screen. */
+data class HomeShortcut(val slot: Int, val packageName: String)
+
 /**
  * All launcher settings, backed by SharedPreferences and exposed as Compose state so the UI
  * updates the moment a value changes.
@@ -44,6 +47,10 @@ class LauncherPrefs(context: Context) {
     var dockPackages by mutableStateOf<List<String>?>(loadDock())
         private set
 
+    /** App shortcuts on the home screen: package name plus grid slot (page * 20 + row * 5 + column). */
+    var homeShortcuts by mutableStateOf(loadHomeShortcuts())
+        private set
+
     fun updateWidgetsEnabled(value: Boolean) {
         widgetsEnabled = value
         sp.edit().putBoolean(K_WIDGETS, value).apply()
@@ -79,6 +86,25 @@ class LauncherPrefs(context: Context) {
         sp.edit().putString(K_DOCK, packages.joinToString("|")).apply()
     }
 
+    fun updateHomeShortcuts(list: List<HomeShortcut>) {
+        homeShortcuts = list
+        sp.edit().putString(K_HOME, list.joinToString("|") { "${it.slot}:${it.packageName}" }).apply()
+    }
+
+    private fun loadHomeShortcuts(): List<HomeShortcut> {
+        val seenSlots = HashSet<Int>()
+        val seenPackages = HashSet<String>()
+        return sp.getString(K_HOME, "")
+            .orEmpty()
+            .split("|")
+            .mapNotNull { entry ->
+                val slot = entry.substringBefore(':', "").toIntOrNull() ?: return@mapNotNull null
+                val pkg = entry.substringAfter(':', "").trim()
+                if (slot < 0 || slot >= HOME_PER_PAGE * MAX_HOME_PAGES || pkg.isEmpty()) null else HomeShortcut(slot, pkg)
+            }
+            .filter { seenSlots.add(it.slot) && seenPackages.add(it.packageName) }
+    }
+
     private fun loadWidgetIds(): List<Int> =
         sp.getString(K_WIDGET_IDS, "")
             .orEmpty()
@@ -97,5 +123,6 @@ class LauncherPrefs(context: Context) {
         const val K_GLASS = "glass_opacity"
         const val K_WIDGET_IDS = "widget_ids"
         const val K_DOCK = "dock_packages"
+        const val K_HOME = "home_shortcuts"
     }
 }

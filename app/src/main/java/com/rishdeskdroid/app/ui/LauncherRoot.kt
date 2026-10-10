@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.mandatorySystemGestures
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,8 +42,14 @@ fun LauncherRoot(
 ) {
     BackHandler(enabled = screen != Screen.Home) { onScreenChange(Screen.Home) }
 
-    val sideAndBottom = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-    val sides = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+    // Interactive content stays inside the system bars (gesture bar or three-button bar, on whichever
+    // edge it sits), display cutouts and the system gesture strip. The wallpaper still fills the screen.
+    // The keyboard is not included, so opening it never squeezes the home screen.
+    val usable = WindowInsets.systemBars
+        .union(WindowInsets.displayCutout)
+        .union(WindowInsets.mandatorySystemGestures.only(WindowInsetsSides.Bottom))
+    val sideAndBottom = usable.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+    val sides = usable.only(WindowInsetsSides.Horizontal)
 
     Box(Modifier.fillMaxSize().background(Color(0xFF14163A))) {
         Wallpaper(prefs, blurred = screen != Screen.Home)
