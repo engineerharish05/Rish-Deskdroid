@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -170,7 +172,12 @@ private fun DrawerActionButton(label: String, onClick: () -> Unit) {
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.14f))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 10.dp)
+            .defaultMinSize(minHeight = 48.dp)
+            .semantics {
+                role = Role.Button
+                contentDescription = label
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(label, color = Color.White, fontSize = 12.sp, maxLines = 1)
