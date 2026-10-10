@@ -56,7 +56,7 @@ Ctrl+H home, Ctrl+1 to 9 launch the dock apps, Esc go back.
 ## Project layout
 
 ```
-app/src/main/java/com/glasslauncher/app/
+app/src/main/java/com/rishdeskdroid/app/
   MainActivity.kt
   data/   LauncherPrefs, Apps, StatusController, WidgetController, WallpaperStore
   ui/     LauncherRoot, HomeScreen, DrawerScreen, SettingsScreen, StatusBar,

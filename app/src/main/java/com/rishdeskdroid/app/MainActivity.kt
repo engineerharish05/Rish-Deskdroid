@@ -1,4 +1,4 @@
-package com.glasslauncher.app
+package com.rishdeskdroid.app
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -21,15 +21,15 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.glasslauncher.app.data.AppRepository
-import com.glasslauncher.app.data.LauncherPrefs
-import com.glasslauncher.app.data.WidgetController
-import com.glasslauncher.app.data.dockApps
-import com.glasslauncher.app.data.launchApp
-import com.glasslauncher.app.ui.GlassTheme
-import com.glasslauncher.app.ui.LauncherRoot
-import com.glasslauncher.app.ui.Screen
-import com.glasslauncher.app.ui.rememberStatus
+import com.rishdeskdroid.app.data.AppRepository
+import com.rishdeskdroid.app.data.LauncherPrefs
+import com.rishdeskdroid.app.data.WidgetController
+import com.rishdeskdroid.app.data.dockApps
+import com.rishdeskdroid.app.data.launchApp
+import com.rishdeskdroid.app.ui.GlassTheme
+import com.rishdeskdroid.app.ui.LauncherRoot
+import com.rishdeskdroid.app.ui.Screen
+import com.rishdeskdroid.app.ui.rememberStatus
 
 class MainActivity : ComponentActivity() {
 

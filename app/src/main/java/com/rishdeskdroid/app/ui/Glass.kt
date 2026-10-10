@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState

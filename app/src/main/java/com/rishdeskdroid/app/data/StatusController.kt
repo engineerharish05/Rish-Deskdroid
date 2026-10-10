@@ -1,4 +1,4 @@
-package com.glasslauncher.app.data
+package com.rishdeskdroid.app.data
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.glasslauncher.app"
+    namespace = "com.rishdeskdroid.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.glasslauncher.app"
+        applicationId = "com.rishdeskdroid.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

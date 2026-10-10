@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import android.appwidget.AppWidgetProviderInfo
 import androidx.compose.foundation.Image
@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.drawable.toBitmap
-import com.glasslauncher.app.data.AppInfo
+import com.rishdeskdroid.app.data.AppInfo
 
 private val DialogSurface = Color(0xF2171A3F)
 

@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,9 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.glasslauncher.app.data.AppInfo
-import com.glasslauncher.app.data.IconLoader
-import com.glasslauncher.app.data.LoadedIcon
+import com.rishdeskdroid.app.data.AppInfo
+import com.rishdeskdroid.app.data.IconLoader
+import com.rishdeskdroid.app.data.LoadedIcon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

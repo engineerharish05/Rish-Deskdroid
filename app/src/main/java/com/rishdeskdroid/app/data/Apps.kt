@@ -1,4 +1,4 @@
-package com.glasslauncher.app.data
+package com.rishdeskdroid.app.data
 
 import android.content.ComponentName
 import android.content.Context

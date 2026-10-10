@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -51,9 +51,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.glasslauncher.app.data.LauncherPrefs
-import com.glasslauncher.app.data.WallpaperStore
-import com.glasslauncher.app.data.WidgetController
+import com.rishdeskdroid.app.data.LauncherPrefs
+import com.rishdeskdroid.app.data.WallpaperStore
+import com.rishdeskdroid.app.data.WidgetController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

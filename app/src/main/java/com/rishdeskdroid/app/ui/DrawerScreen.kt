@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -37,12 +37,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.glasslauncher.app.data.AppInfo
-import com.glasslauncher.app.data.LauncherPrefs
-import com.glasslauncher.app.data.addToDock
-import com.glasslauncher.app.data.launchApp
-import com.glasslauncher.app.data.openAppInfo
-import com.glasslauncher.app.data.uninstallApp
+import com.rishdeskdroid.app.data.AppInfo
+import com.rishdeskdroid.app.data.LauncherPrefs
+import com.rishdeskdroid.app.data.addToDock
+import com.rishdeskdroid.app.data.launchApp
+import com.rishdeskdroid.app.data.openAppInfo
+import com.rishdeskdroid.app.data.uninstallApp
 
 private const val COLUMNS = 5
 private const val ROWS = 3

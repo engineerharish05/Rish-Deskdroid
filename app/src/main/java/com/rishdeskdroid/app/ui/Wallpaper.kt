@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.glasslauncher.app.data.LauncherPrefs
-import com.glasslauncher.app.data.WallpaperStore
+import com.rishdeskdroid.app.data.LauncherPrefs
+import com.rishdeskdroid.app.data.WallpaperStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

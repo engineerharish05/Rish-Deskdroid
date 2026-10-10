@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -42,16 +42,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.glasslauncher.app.data.AppInfo
-import com.glasslauncher.app.data.LauncherPrefs
-import com.glasslauncher.app.data.WidgetController
-import com.glasslauncher.app.data.addToDock
-import com.glasslauncher.app.data.dockApps
-import com.glasslauncher.app.data.launchApp
-import com.glasslauncher.app.data.openLauncherChooser
-import com.glasslauncher.app.data.openMobileSettings
-import com.glasslauncher.app.data.openOtgStorage
-import com.glasslauncher.app.data.removeFromDock
+import com.rishdeskdroid.app.data.AppInfo
+import com.rishdeskdroid.app.data.LauncherPrefs
+import com.rishdeskdroid.app.data.WidgetController
+import com.rishdeskdroid.app.data.addToDock
+import com.rishdeskdroid.app.data.dockApps
+import com.rishdeskdroid.app.data.launchApp
+import com.rishdeskdroid.app.data.openLauncherChooser
+import com.rishdeskdroid.app.data.openMobileSettings
+import com.rishdeskdroid.app.data.openOtgStorage
+import com.rishdeskdroid.app.data.removeFromDock
 
 /**
  * The home screen: widgets in the middle, the glass dock along the bottom.

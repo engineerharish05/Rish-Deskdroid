@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -27,8 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.glasslauncher.app.data.StatusController
-import com.glasslauncher.app.data.StatusState
+import com.rishdeskdroid.app.data.StatusController
+import com.rishdeskdroid.app.data.StatusState
 
 val StatusBarHeight = 24.dp
 

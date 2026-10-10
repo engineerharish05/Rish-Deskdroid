@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import android.os.Bundle
 import androidx.compose.foundation.border
@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.glasslauncher.app.data.WidgetController
+import com.rishdeskdroid.app.data.WidgetController
 
 /** Shows one hosted Android app widget in a rounded frame. */
 @Composable

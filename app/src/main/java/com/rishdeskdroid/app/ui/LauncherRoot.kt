@@ -1,4 +1,4 @@
-package com.glasslauncher.app.ui
+package com.rishdeskdroid.app.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -19,10 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.glasslauncher.app.data.AppInfo
-import com.glasslauncher.app.data.LauncherPrefs
-import com.glasslauncher.app.data.StatusState
-import com.glasslauncher.app.data.WidgetController
+import com.rishdeskdroid.app.data.AppInfo
+import com.rishdeskdroid.app.data.LauncherPrefs
+import com.rishdeskdroid.app.data.StatusState
+import com.rishdeskdroid.app.data.WidgetController
 
 enum class Screen { Home, Drawer, Settings }
 
