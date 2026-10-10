@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "GlassLauncher"
+rootProject.name = "Rish Deskdroid"
 include(":app")
