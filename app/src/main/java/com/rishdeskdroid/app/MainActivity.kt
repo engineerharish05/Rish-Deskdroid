@@ -123,6 +123,7 @@ class MainActivity : ComponentActivity() {
             unregisterReceiver(packageReceiver)
         } catch (e: Exception) {
         }
+        repo.close()
         super.onDestroy()
     }
 
