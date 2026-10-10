@@ -13,8 +13,6 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.widget.Toast
-import android.view.Surface
-import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -195,45 +193,18 @@ private fun safeStart(context: Context, intent: Intent, errorMessage: String) {
     }
 }
 
+/**
+ * Launches an app without changing the device-wide rotation settings.
+ *
+ * Android does not provide a public launcher API to force an unrelated app's activity
+ * into landscape. Each target app and the device's own orientation settings control that.
+ */
 fun launchApp(context: Context, app: AppInfo) {
-    if (Settings.System.canWrite(context)) {
-        lockLandscape(context)
-    } else {
-        val prefs = context.getSharedPreferences("rish_deskdroid", Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("asked_write_settings", false)) {
-            prefs.edit().putBoolean("asked_write_settings", true).apply()
-            Toast.makeText(
-                context,
-                "Allow \"Modify system settings\" for Rish Deskdroid, then tap the app again",
-                Toast.LENGTH_LONG,
-            ).show()
-            safeStart(
-                context,
-                Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}")),
-                "Can't open settings",
-            )
-            return
-        }
-    }
     val intent = Intent(Intent.ACTION_MAIN)
         .addCategory(Intent.CATEGORY_LAUNCHER)
         .setComponent(app.component)
         .addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
     safeStart(context, intent, "Can't open ${app.label}")
-}
-
-@Suppress("DEPRECATION")
-private fun lockLandscape(context: Context) {
-    try {
-        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val rotation =
-            if (wm.defaultDisplay.rotation == Surface.ROTATION_270) Surface.ROTATION_270 else Surface.ROTATION_90
-        val resolver = context.contentResolver
-        Settings.System.putInt(resolver, Settings.System.ACCELEROMETER_ROTATION, 0)
-        Settings.System.putInt(resolver, Settings.System.USER_ROTATION, rotation)
-    } catch (e: Exception) {
-        // Not allowed on this device; the app just opens in its default orientation.
-    }
 }
 
 fun openAppInfo(context: Context, app: AppInfo) {
